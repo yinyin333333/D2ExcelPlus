@@ -11,12 +11,10 @@ object ExcelPlusMainForm: TExcelPlusMainForm
   Font.Name = 'Tahoma'
   Font.Style = []
   Menu = mmMain
-  OldCreateOrder = False
   ShowHint = True
   OnClose = FormClose
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
-  PixelsPerInch = 96
   TextHeight = 13
   object spSplitter: TSplitter
     Left = 200
@@ -34,6 +32,7 @@ object ExcelPlusMainForm: TExcelPlusMainForm
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 0
+    ExplicitHeight = 486
     object tvWorkspace: TTreeView
       AlignWithMargins = True
       Left = 3
@@ -49,6 +48,7 @@ object ExcelPlusMainForm: TExcelPlusMainForm
       TabOrder = 0
       OnCollapsing = tvWorkspaceCollapsing
       OnDblClick = tvWorkspaceDblClick
+      ExplicitHeight = 480
     end
   end
   object pcFiles: TPageControl
@@ -70,6 +70,8 @@ object ExcelPlusMainForm: TExcelPlusMainForm
     OnContextPopup = pcFilesContextPopup
     OnMouseLeave = pcFilesMouseLeave
     OnMouseMove = pcFilesMouseMove
+    ExplicitWidth = 627
+    ExplicitHeight = 484
   end
   object Panel1: TPanel
     Left = 0
@@ -78,6 +80,7 @@ object ExcelPlusMainForm: TExcelPlusMainForm
     Height = 45
     Align = alTop
     TabOrder = 2
+    ExplicitWidth = 832
     object sbRedo: TSpeedButton
       AlignWithMargins = True
       Left = 310
@@ -2417,6 +2420,13 @@ object ExcelPlusMainForm: TExcelPlusMainForm
     object miCloseAllFiles: TMenuItem
       Caption = 'Close all'
       OnClick = miCloseAllFilesClick
+    end
+    object miWorkspaceSeparator: TMenuItem
+      Caption = '-'
+    end
+    object miToggleWorkspaceMenu: TMenuItem
+      Caption = 'Hide Workspace'
+      OnClick = miToggleWorkspaceClick
     end
   end
   object odFolder: TFileOpenDialog

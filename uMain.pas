@@ -57,6 +57,8 @@ type
     miUndo: TMenuItem;
     miRedo: TMenuItem;
     N4: TMenuItem;
+    miWorkspaceSeparator: TMenuItem;
+    miToggleWorkspaceMenu: TMenuItem;
     {$endregion}
     {$region 'Eventhandler'}
     procedure miOpenClick(Sender: TObject);
@@ -85,13 +87,18 @@ type
     procedure miAboutClick(Sender: TObject);
     procedure miUndoClick(Sender: TObject);
     procedure miRedoClick(Sender: TObject);
+    procedure miToggleWorkspaceClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     {$endregion}
   private
     FWorkspacePath: String;
     FLastFindPos: TPoint;
     FFiles: TDictionary<string, TTableFrameTabsheet>;
+    FWorkspaceVisible: Boolean;
+    FWorkspaceWidth: Integer;
 
     procedure InitToolbar;
+    procedure ApplyWorkspaceVisibility;
 
     procedure SetControls(ASetFocus: Boolean = true);
 
@@ -222,8 +229,16 @@ end;
 
 procedure TExcelPlusMainForm.FormCreate(Sender: TObject);
 begin
+  KeyPreview := True;
+  OnKeyDown := FormKeyDown;
+
   InitToolbar();
-  LoadSettings();
+
+  FWorkspaceVisible := True;
+  FWorkspaceWidth := plSideBar.Width;
+
+  LoadSettings;
+  ApplyWorkspaceVisibility;
   SetControls();
 end;
 
@@ -236,6 +251,32 @@ begin
   imlIcons32.GetBitmap(4, sbSearch.Glyph);
   imlIcons32.GetBitmap(5, sbUndo.Glyph);
   imlIcons32.GetBitmap(6, sbRedo.Glyph);
+end;
+
+procedure TExcelPlusMainForm.ApplyWorkspaceVisibility;
+begin
+  if FWorkspaceVisible then
+  begin
+    plSideBar.Visible := True;
+    spSplitter.Visible := True;
+
+    if FWorkspaceWidth < 120 then
+      FWorkspaceWidth := 200;
+
+    plSideBar.Width := FWorkspaceWidth;
+    miToggleWorkspaceMenu.Caption := 'Hide Workspace';
+    miToggleWorkspaceMenu.Checked := True;
+  end
+  else
+  begin
+    if plSideBar.Visible and (plSideBar.Width > 0) then
+      FWorkspaceWidth := plSideBar.Width;
+
+    plSideBar.Visible := False;
+    spSplitter.Visible := False;
+    miToggleWorkspaceMenu.Caption := 'Show Workspace';
+    miToggleWorkspaceMenu.Checked := False;
+  end;
 end;
 
 function TExcelPlusMainForm.IsAnyModified: Boolean;
@@ -350,6 +391,34 @@ begin
     currTab.Frame.Redo;
 end;
 
+procedure TExcelPlusMainForm.miToggleWorkspaceClick(Sender: TObject);
+begin
+  FWorkspaceVisible := not FWorkspaceVisible;
+  ApplyWorkspaceVisibility;
+  SaveSettings;
+end;
+
+procedure TExcelPlusMainForm.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if ssCtrl in Shift then
+  begin
+    case Key of
+      Ord('H'):
+        begin
+          miToggleWorkspaceClick(Self);
+          Key := 0;
+        end;
+
+      Ord('W'):
+        begin
+          miCloseClick(Self);
+          Key := 0;
+        end;
+    end;
+  end;
+end;
+
 procedure TExcelPlusMainForm.miSaveAllClick(Sender: TObject);
 var i: Integer;
     tab: TTableFrameTabsheet;
@@ -437,17 +506,23 @@ begin
 end;
 
 procedure TExcelPlusMainForm.LoadSettings;
-var path: String;
-    ini: TIniFile;
+var
+  path: String;
+  ini: TIniFile;
 begin
   path := IncludeTrailingPathDelimiter(GetEnvironmentVariable('APPDATA'));
   path := path + 'D2ExcelPlus\';
+
   if FileExists(path + 'settings.ini') then
   begin
     ini := TIniFile.Create(path + 'settings.ini');
     try
       FWorkspacePath := ini.ReadString('SETTINGS', 'workspace', '');
-      LoadWorkSpace(FWorkspacePath);
+      FWorkspaceVisible := ini.ReadBool('SETTINGS', 'workspace_visible', True);
+      FWorkspaceWidth := ini.ReadInteger('SETTINGS', 'workspace_width', plSideBar.Width);
+
+      if FWorkspacePath <> '' then
+        LoadWorkspace(FWorkspacePath);
     finally
       ini.Free;
     end;
@@ -483,15 +558,22 @@ begin
 end;
 
 procedure TExcelPlusMainForm.SaveSettings;
-var path: String;
-    ini: TIniFile;
+var
+  path: String;
+  ini: TIniFile;
 begin
   path := IncludeTrailingPathDelimiter(GetEnvironmentVariable('APPDATA'));
   path := path + 'D2ExcelPlus\';
+
   ForceDirectories(path);
   ini := TIniFile.Create(path + 'settings.ini');
   try
+    if plSideBar.Visible and (plSideBar.Width > 0) then
+      FWorkspaceWidth := plSideBar.Width;
+
     ini.WriteString('SETTINGS', 'workspace', FWorkspacePath);
+    ini.WriteBool('SETTINGS', 'workspace_visible', FWorkspaceVisible);
+    ini.WriteInteger('SETTINGS', 'workspace_width', FWorkspaceWidth);
     ini.UpdateFile;
   finally
     ini.Free;

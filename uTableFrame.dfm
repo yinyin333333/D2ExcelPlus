@@ -13,7 +13,6 @@ object TableFrame: TTableFrame
     Height = 495
     Align = alClient
     DefaultColWidth = 10
-    DefaultRowHeight = 18
     DefaultDrawing = False
     DoubleBuffered = True
     DrawingStyle = gdsGradient
@@ -49,6 +48,8 @@ object TableFrame: TTableFrame
       Width = 177
       Height = 17
       Caption = 'Lock first              Columns'
+      Checked = True
+      State = cbChecked
       TabOrder = 0
       OnClick = cbFixColumnsClick
     end
@@ -56,7 +57,7 @@ object TableFrame: TTableFrame
       Left = 72
       Top = 4
       Width = 33
-      Height = 22
+      Height = 23
       Enabled = False
       MaxValue = 9
       MinValue = 1
@@ -64,35 +65,104 @@ object TableFrame: TTableFrame
       Value = 1
       OnChange = cbFixColumnsClick
     end
+    object cbFixRows: TCheckBox
+      Left = 191
+      Top = 8
+      Width = 97
+      Height = 17
+      Caption = 'Lock first row'
+      Checked = True
+      State = cbChecked
+      TabOrder = 2
+      OnClick = cbFixRowsClick
+    end
   end
   object pmGrid: TPopupMenu
     Left = 392
     Top = 160
-    object miGridAddNew: TMenuItem
-      Caption = 'Append'
-      OnClick = miGridAddNewClick
+    object miColumnOps: TMenuItem
+      Caption = 'Column Operations'
+      object miColumnAdd: TMenuItem
+        Caption = 'Add Columns...'
+        OnClick = miColumnAddClick
+      end
+      object miColumnInsert: TMenuItem
+        Caption = 'Insert Column'
+        OnClick = miColumnInsertClick
+      end
+      object miColumnHide: TMenuItem
+        Caption = 'Hide Column(s)'
+        OnClick = miColumnHideClick
+      end
+      object miColumnDelete: TMenuItem
+        Caption = 'Delete Column(s)'
+        OnClick = miColumnDeleteClick
+      end
     end
-    object miGridAddCopy: TMenuItem
-      Caption = 'Append copy'
-      OnClick = miGridAddCopyClick
+    object miRowOps: TMenuItem
+      Caption = 'Row Operations'
+      object miRowAdd: TMenuItem
+        Caption = 'Add Rows...'
+        OnClick = miGridAddNewClick
+      end
+      object miRowInsert: TMenuItem
+        Caption = 'Insert Row'
+        OnClick = miGridInsertNewClick
+      end
+      object miRowHide: TMenuItem
+        Caption = 'Hide Row(s)'
+        OnClick = miRowHideClick
+      end
+      object miRowDelete: TMenuItem
+        Caption = 'Delete Row(s)'
+        OnClick = miGridDeleteRowClick
+      end
+      object miRowClone: TMenuItem
+        Caption = 'Clone Row...'
+        OnClick = miGridAddCopyClick
+      end
     end
-    object N1: TMenuItem
-      Caption = '-'
+    object miResizeToFit: TMenuItem
+      Caption = 'Resize To Fit'
+      OnClick = miResizeToFitClick
     end
-    object miGridInsertNew: TMenuItem
-      Caption = 'Insert'
-      OnClick = miGridInsertNewClick
+    object miResizeToFitThisColumn: TMenuItem
+      Caption = 'Resize To Fit This Column'
+      OnClick = miResizeToFitThisColumnClick
     end
-    object miGridInsertCopy: TMenuItem
-      Caption = 'Insert copy'
-      OnClick = miGridInsertCopyClick
+    object miUnhideAll: TMenuItem
+      Caption = 'Unhide All'
+      OnClick = miUnhideAllClick
     end
-    object N2: TMenuItem
-      Caption = '-'
+    object miFill: TMenuItem
+      Caption = 'Fill'
+      object miFillCells: TMenuItem
+        Caption = 'Fill Cells'
+        OnClick = miFillCellsClick
+      end
+      object miFillIncrement: TMenuItem
+        Caption = 'Increment Fill'
+        OnClick = miFillIncrementClick
+      end
     end
-    object miGridDeleteRow: TMenuItem
-      Caption = 'Delete'
-      OnClick = miGridDeleteRowClick
+    object miMath: TMenuItem
+      Caption = 'Math'
+      object miMathMultiply: TMenuItem
+        Caption = '*   Multiply'
+        OnClick = miMathMultiplyClick
+      end
+      object miMathDivide: TMenuItem
+        Caption = '\   Divide'
+        OnClick = miMathDivideClick
+      end
+      object miMathAdd: TMenuItem
+        Caption = '+    Add'
+        OnClick = miMathAddClick
+      end
+      object miMathSubtract: TMenuItem
+        Caption = '-   Subtract'
+        OnClick = miMathSubtractClick
+      end
     end
   end
 end

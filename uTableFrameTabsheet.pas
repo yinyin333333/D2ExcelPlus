@@ -32,6 +32,7 @@ begin
   FFrame := Value;
   FFrame.Parent := Self;
   FFrame.Align := alClient;
+  FFrame.RefreshVisualMetrics;
 end;
 
 end.
