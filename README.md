@@ -21,7 +21,9 @@ This fork keeps D2ExcelPlus as a Diablo 2 text file editor, but includes several
 - Added zoom inout function with realtime ui scailing
 - Added toggle lock row/columns
 - Added or expanded context-menu operations for rows and columns
-- Added resize-related utilities such as **Resize To Fit**
+
+=======
+- Added resize-related utilities such as **Resize To Fit this columns**
 - Added fill utilities such as **Fill Cells** and **Increment Fill**
 - Added math operations for selected cells:
   - Multiply
@@ -53,3 +55,4 @@ This fork keeps D2ExcelPlus as a Diablo 2 text file editor, but includes several
 
 ## Notes
 I don't know anything about programming, and since I changed this for personal use, there might be many errors.
+
