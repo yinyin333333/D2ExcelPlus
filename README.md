@@ -55,4 +55,5 @@ This fork keeps D2ExcelPlus as a Diablo 2 text file editor, but includes several
 
 ## Notes
 I don't know anything about programming, and since I changed this for personal use, there might be many errors.
+=======
 
