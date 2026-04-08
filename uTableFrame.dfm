@@ -6,42 +6,26 @@ object TableFrame: TTableFrame
   ParentShowHint = False
   ShowHint = False
   TabOrder = 0
-  object sgTable: TStringGrid
-    Left = 0
-    Top = 31
-    Width = 674
-    Height = 495
-    Align = alClient
-    DefaultColWidth = 10
-    DefaultDrawing = False
-    DoubleBuffered = True
-    DrawingStyle = gdsGradient
-    RowCount = 3
-    GradientEndColor = 15790320
-    GradientStartColor = 15790320
-    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goDrawFocusSelected, goColSizing, goEditing, goThumbTracking, goFixedColClick, goFixedRowClick]
-    ParentDoubleBuffered = False
-    PopupMenu = pmGrid
-    TabOrder = 0
-    OnContextPopup = sgTableContextPopup
-    OnDrawCell = sgTableDrawCell
-    OnFixedCellClick = sgTableFixedCellClick
-    OnGetEditText = sgTableGetEditText
-    OnKeyDown = sgTableKeyDown
-    OnMouseDown = sgTableMouseDown
-    OnMouseMove = sgTableMouseMove
-    OnMouseWheelDown = sgTableMouseWheelDown
-    OnMouseWheelUp = sgTableMouseWheelUp
-    OnSelectCell = sgTableSelectCell
-  end
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 674
+    Width = 594
     Height = 31
     Align = alTop
     BevelOuter = bvNone
-    TabOrder = 1
+    TabOrder = 0
+    object sbToggleHistory: TSpeedButton
+      AlignWithMargins = True
+      Left = 499
+      Top = 3
+      Width = 92
+      Height = 25
+      Align = alRight
+      Caption = 'Hide History'
+      Flat = True
+      OnClick = sbToggleHistoryClick
+      ExplicitLeft = 499
+    end
     object cbFixColumns: TCheckBox
       Left = 8
       Top = 6
@@ -57,7 +41,7 @@ object TableFrame: TTableFrame
       Left = 72
       Top = 4
       Width = 33
-      Height = 23
+      Height = 24
       Enabled = False
       MaxValue = 9
       MinValue = 1
@@ -76,6 +60,88 @@ object TableFrame: TTableFrame
       TabOrder = 2
       OnClick = cbFixRowsClick
     end
+  end
+  object plHistory: TPanel
+    Left = 434
+    Top = 31
+    Width = 240
+    Height = 495
+    Align = alRight
+    BevelOuter = bvNone
+    TabOrder = 1
+    object pnlHistoryHeader: TPanel
+      Left = 0
+      Top = 0
+      Width = 240
+      Height = 30
+      Align = alTop
+      BevelOuter = bvNone
+      Caption = ''
+      TabOrder = 0
+      object lblHistoryTitle: TLabel
+        Left = 8
+        Top = 8
+        Width = 42
+        Height = 13
+        Caption = 'History'
+      end
+    end
+    object tvHistory: TListBox
+      AlignWithMargins = True
+      Left = 3
+      Top = 33
+      Width = 237
+      Height = 459
+      Margins.Right = 0
+      Align = alClient
+      BorderStyle = bsNone
+      ExtendedSelect = False
+      IntegralHeight = False
+      ItemHeight = 18
+      Style = lbOwnerDrawVariable
+      TabOrder = 1
+      OnDblClick = tvHistoryDblClick
+      OnDrawItem = tvHistoryDrawItem
+      OnMeasureItem = tvHistoryMeasureItem
+    end
+  end
+  object spHistory: TSplitter
+    Left = 431
+    Top = 31
+    Width = 3
+    Height = 495
+    Align = alRight
+    ExplicitLeft = 431
+    ExplicitTop = 31
+    ExplicitHeight = 495
+  end
+  object sgTable: TStringGrid
+    Left = 0
+    Top = 31
+    Width = 351
+    Height = 495
+    Align = alClient
+    DefaultColWidth = 10
+    DefaultDrawing = False
+    DoubleBuffered = True
+    DrawingStyle = gdsGradient
+    RowCount = 3
+    GradientEndColor = 15790320
+    GradientStartColor = 15790320
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goDrawFocusSelected, goColSizing, goEditing, goThumbTracking, goFixedColClick, goFixedRowClick]
+    ParentDoubleBuffered = False
+    PopupMenu = pmGrid
+    TabOrder = 2
+    OnContextPopup = sgTableContextPopup
+    OnDrawCell = sgTableDrawCell
+    OnFixedCellClick = sgTableFixedCellClick
+    OnGetEditText = sgTableGetEditText
+    OnKeyDown = sgTableKeyDown
+    OnMouseDown = sgTableMouseDown
+    OnMouseMove = sgTableMouseMove
+    OnMouseWheelDown = sgTableMouseWheelDown
+    OnMouseWheelUp = sgTableMouseWheelUp
+    OnSelectCell = sgTableSelectCell
   end
   object pmGrid: TPopupMenu
     Left = 392

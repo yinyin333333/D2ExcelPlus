@@ -89,6 +89,7 @@ type
     procedure miRedoClick(Sender: TObject);
     procedure miToggleWorkspaceClick(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure pcFilesDrawTab(Control: TCustomTabControl; TabIndex: Integer; const Rect: TRect; Active: Boolean);
     {$endregion}
   private
     FWorkspacePath: String;
@@ -96,9 +97,14 @@ type
     FFiles: TDictionary<string, TTableFrameTabsheet>;
     FWorkspaceVisible: Boolean;
     FWorkspaceWidth: Integer;
+    FDarkMode: Boolean;
+    sbTheme: TSpeedButton;
+    pnlThemeSpacer: TPanel;
 
     procedure InitToolbar;
     procedure ApplyWorkspaceVisibility;
+    procedure ApplyTheme;
+    procedure sbThemeClick(Sender: TObject);
 
     procedure SetControls(ASetFocus: Boolean = true);
 
@@ -232,13 +238,19 @@ begin
   KeyPreview := True;
   OnKeyDown := FormKeyDown;
 
+  pcFiles.OwnerDraw := True;
+  pcFiles.OnDrawTab := pcFilesDrawTab;
+  pcFiles.DoubleBuffered := True;
+
   InitToolbar();
 
   FWorkspaceVisible := True;
   FWorkspaceWidth := plSideBar.Width;
+  FDarkMode := False;
 
   LoadSettings;
   ApplyWorkspaceVisibility;
+  ApplyTheme;
   SetControls();
 end;
 
@@ -251,6 +263,173 @@ begin
   imlIcons32.GetBitmap(4, sbSearch.Glyph);
   imlIcons32.GetBitmap(5, sbUndo.Glyph);
   imlIcons32.GetBitmap(6, sbRedo.Glyph);
+
+  if not Assigned(pnlThemeSpacer) then
+  begin
+    pnlThemeSpacer := TPanel.Create(Self);
+    pnlThemeSpacer.Parent := Panel1;
+    pnlThemeSpacer.Align := alLeft;
+    pnlThemeSpacer.Width := 16;
+    pnlThemeSpacer.BevelOuter := bvNone;
+    pnlThemeSpacer.Caption := '';
+  end;
+
+  if not Assigned(sbTheme) then
+  begin
+    sbTheme := TSpeedButton.Create(Self);
+    sbTheme.Parent := Panel1;
+    sbTheme.Align := alLeft;
+    sbTheme.Width := 72;
+    sbTheme.Flat := True;
+    sbTheme.Caption := 'Dark';
+    sbTheme.Hint := 'Toggle dark mode';
+    sbTheme.ShowHint := True;
+    sbTheme.OnClick := sbThemeClick;
+  end;
+end;
+
+procedure TExcelPlusMainForm.ApplyTheme;
+var
+  PanelColor: TColor;
+  SurfaceColor: TColor;
+  TextColor: TColor;
+  ToolbarColor: TColor;
+  Tab: TTableFrameTabsheet;
+begin
+  if FDarkMode then
+  begin
+    Color := RGB(45, 45, 48);
+    ToolbarColor := RGB(45, 45, 48);
+    PanelColor := RGB(37, 37, 38);
+    SurfaceColor := RGB(30, 30, 30);
+    TextColor := RGB(240, 240, 240);
+  end
+  else
+  begin
+    Color := clBtnFace;
+    ToolbarColor := clBtnFace;
+    PanelColor := clBtnFace;
+    SurfaceColor := clWindow;
+    TextColor := clWindowText;
+  end;
+
+  Font.Color := TextColor;
+
+  Panel1.ParentBackground := False;
+  Panel1.Color := ToolbarColor;
+  Panel1.Font.Color := TextColor;
+
+  Panel2.ParentBackground := False;
+  Panel2.Color := ToolbarColor;
+  Panel2.Font.Color := TextColor;
+  Panel3.ParentBackground := False;
+  Panel3.Color := ToolbarColor;
+  Panel3.Font.Color := TextColor;
+  Panel4.ParentBackground := False;
+  Panel4.Color := ToolbarColor;
+  Panel4.Font.Color := TextColor;
+
+  if Assigned(pnlThemeSpacer) then
+  begin
+    pnlThemeSpacer.ParentBackground := False;
+    pnlThemeSpacer.Color := ToolbarColor;
+    pnlThemeSpacer.Font.Color := TextColor;
+  end;
+
+  plSideBar.ParentBackground := False;
+  plSideBar.Color := PanelColor;
+  plSideBar.Font.Color := TextColor;
+  tvWorkspace.ParentColor := False;
+  tvWorkspace.Color := SurfaceColor;
+  tvWorkspace.Font.Color := TextColor;
+
+  pcFiles.Invalidate;
+
+  sbOpen.Font.Color := TextColor;
+  sbOpenFolder.Font.Color := TextColor;
+  sbSave.Font.Color := TextColor;
+  sbSaveAll.Font.Color := TextColor;
+  sbSearch.Font.Color := TextColor;
+  sbUndo.Font.Color := TextColor;
+  sbRedo.Font.Color := TextColor;
+
+  if Assigned(sbTheme) then
+  begin
+    sbTheme.Font.Color := TextColor;
+    if FDarkMode then
+      sbTheme.Caption := 'Light'
+    else
+      sbTheme.Caption := 'Dark';
+  end;
+
+  for Tab in FFiles.Values do
+    Tab.Frame.SetDarkModeEnabled(FDarkMode);
+
+  Invalidate;
+  Panel1.Invalidate;
+  plSideBar.Invalidate;
+  tvWorkspace.Invalidate;
+  pcFiles.Invalidate;
+end;
+
+
+procedure TExcelPlusMainForm.pcFilesDrawTab(Control: TCustomTabControl; TabIndex: Integer;
+  const Rect: TRect; Active: Boolean);
+var
+  DrawRect: TRect;
+  FillColor: TColor;
+  BorderColor: TColor;
+  TextColor: TColor;
+  S: string;
+begin
+  DrawRect := Rect;
+
+  if FDarkMode then
+  begin
+    if Active then
+      FillColor := RGB(45, 45, 48)
+    else
+      FillColor := RGB(37, 37, 38);
+
+    BorderColor := RGB(90, 90, 95);
+    TextColor := RGB(240, 240, 240);
+  end
+  else
+  begin
+    if Active then
+      FillColor := clWindow
+    else
+      FillColor := clBtnFace;
+
+    BorderColor := clBtnShadow;
+    TextColor := clWindowText;
+  end;
+
+  with pcFiles.Canvas do
+  begin
+    Brush.Color := FillColor;
+    FillRect(DrawRect);
+
+    Pen.Color := BorderColor;
+    Rectangle(DrawRect);
+
+    Brush.Style := bsClear;
+    Font.Assign(Self.Font);
+    Font.Color := TextColor;
+
+    S := pcFiles.Pages[TabIndex].Caption;
+    DrawText(Handle, PChar(S), Length(S), DrawRect,
+      DT_SINGLELINE or DT_VCENTER or DT_CENTER or DT_END_ELLIPSIS);
+
+    Brush.Style := bsSolid;
+  end;
+end;
+
+procedure TExcelPlusMainForm.sbThemeClick(Sender: TObject);
+begin
+  FDarkMode := not FDarkMode;
+  ApplyTheme;
+  SaveSettings;
 end;
 
 procedure TExcelPlusMainForm.ApplyWorkspaceVisibility;
@@ -400,7 +579,17 @@ end;
 
 procedure TExcelPlusMainForm.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
+var
+  CurrTab: TTableFrameTabsheet;
 begin
+  CurrTab := TTableFrameTabsheet(pcFiles.ActivePage);
+
+  if Assigned(CurrTab) and CurrTab.Frame.HandleZoomShortcut(Key, Shift) then
+  begin
+    Key := 0;
+    Exit;
+  end;
+
   if ssCtrl in Shift then
   begin
     case Key of
@@ -464,6 +653,7 @@ begin
     tabsheet.ParentShowHint := false;
     tabsheet.ShowHint := false;
     tabsheet.Frame := TTableFrame.Create(Self, AFilename);
+    tabsheet.Frame.SetDarkModeEnabled(FDarkMode);
     tabsheet.Frame.OnModifiedChanged := TabModifiedChanged;
     pcFiles.ActivePage := tabsheet;
 
@@ -476,6 +666,7 @@ end;
 procedure TExcelPlusMainForm.pcFilesChange(Sender: TObject);
 begin
   SetControls;
+  ApplyTheme;
 end;
 
 procedure TExcelPlusMainForm.pcFilesContextPopup(Sender: TObject;
@@ -520,6 +711,7 @@ begin
       FWorkspacePath := ini.ReadString('SETTINGS', 'workspace', '');
       FWorkspaceVisible := ini.ReadBool('SETTINGS', 'workspace_visible', True);
       FWorkspaceWidth := ini.ReadInteger('SETTINGS', 'workspace_width', plSideBar.Width);
+      FDarkMode := ini.ReadBool('SETTINGS', 'dark_mode', False);
 
       if FWorkspacePath <> '' then
         LoadWorkspace(FWorkspacePath);
@@ -574,6 +766,7 @@ begin
     ini.WriteString('SETTINGS', 'workspace', FWorkspacePath);
     ini.WriteBool('SETTINGS', 'workspace_visible', FWorkspaceVisible);
     ini.WriteInteger('SETTINGS', 'workspace_width', FWorkspaceWidth);
+    ini.WriteBool('SETTINGS', 'dark_mode', FDarkMode);
     ini.UpdateFile;
   finally
     ini.Free;
