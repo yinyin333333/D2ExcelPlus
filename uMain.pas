@@ -90,6 +90,7 @@ type
     procedure miToggleWorkspaceClick(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure pcFilesDrawTab(Control: TCustomTabControl; TabIndex: Integer; const Rect: TRect; Active: Boolean);
+    procedure AppMessage(var Msg: TMsg; var Handled: Boolean);
     {$endregion}
   private
     FWorkspacePath: String;
@@ -172,6 +173,7 @@ end;
 
 destructor TExcelPlusMainForm.Destroy;
 begin
+  Application.OnMessage := nil;
   DragAcceptFiles(Handle, false);
   FreeAndNil(FFiles);
   inherited;
@@ -237,6 +239,7 @@ procedure TExcelPlusMainForm.FormCreate(Sender: TObject);
 begin
   KeyPreview := True;
   OnKeyDown := FormKeyDown;
+  Application.OnMessage := AppMessage;
 
   pcFiles.OwnerDraw := True;
   pcFiles.OnDrawTab := pcFilesDrawTab;
@@ -608,6 +611,27 @@ begin
   end;
 end;
 
+procedure TExcelPlusMainForm.AppMessage(var Msg: TMsg; var Handled: Boolean);
+var
+  CurrTab: TTableFrameTabsheet;
+  Shift: TShiftState;
+begin
+  if Msg.message <> WM_KEYDOWN then
+    Exit;
+
+  Shift := [];
+  if GetKeyState(VK_SHIFT) < 0 then
+    Include(Shift, ssShift);
+  if GetKeyState(VK_CONTROL) < 0 then
+    Include(Shift, ssCtrl);
+  if GetKeyState(VK_MENU) < 0 then
+    Include(Shift, ssAlt);
+
+  CurrTab := TTableFrameTabsheet(pcFiles.ActivePage);
+  if Assigned(CurrTab) and CurrTab.Frame.HandleEditorNavigationKey(Msg.wParam, Shift) then
+    Handled := True;
+end;
+
 procedure TExcelPlusMainForm.miSaveAllClick(Sender: TObject);
 var i: Integer;
     tab: TTableFrameTabsheet;
@@ -700,6 +724,9 @@ procedure TExcelPlusMainForm.LoadSettings;
 var
   path: String;
   ini: TIniFile;
+  WorkArea: TRect;
+  W, H, L, T: Integer;
+  Maximized: Boolean;
 begin
   path := IncludeTrailingPathDelimiter(GetEnvironmentVariable('APPDATA'));
   path := path + 'D2ExcelPlus\';
@@ -712,6 +739,22 @@ begin
       FWorkspaceVisible := ini.ReadBool('SETTINGS', 'workspace_visible', True);
       FWorkspaceWidth := ini.ReadInteger('SETTINGS', 'workspace_width', plSideBar.Width);
       FDarkMode := ini.ReadBool('SETTINGS', 'dark_mode', False);
+
+      WorkArea := Screen.MonitorFromWindow(Handle).WorkareaRect;
+      W := ini.ReadInteger('WINDOW', 'width', Width);
+      H := ini.ReadInteger('WINDOW', 'height', Height);
+      L := ini.ReadInteger('WINDOW', 'left', Left);
+      T := ini.ReadInteger('WINDOW', 'top', Top);
+      Maximized := ini.ReadBool('WINDOW', 'maximized', False);
+
+      W := EnsureRange(W, 900, Max(900, WorkArea.Width));
+      H := EnsureRange(H, 600, Max(600, WorkArea.Height));
+      L := EnsureRange(L, WorkArea.Left, Max(WorkArea.Left, WorkArea.Right - W));
+      T := EnsureRange(T, WorkArea.Top, Max(WorkArea.Top, WorkArea.Bottom - H));
+
+      SetBounds(L, T, W, H);
+      if Maximized then
+        WindowState := wsMaximized;
 
       if FWorkspacePath <> '' then
         LoadWorkspace(FWorkspacePath);
@@ -753,6 +796,7 @@ procedure TExcelPlusMainForm.SaveSettings;
 var
   path: String;
   ini: TIniFile;
+  SaveBounds: TRect;
 begin
   path := IncludeTrailingPathDelimiter(GetEnvironmentVariable('APPDATA'));
   path := path + 'D2ExcelPlus\';
@@ -763,10 +807,22 @@ begin
     if plSideBar.Visible and (plSideBar.Width > 0) then
       FWorkspaceWidth := plSideBar.Width;
 
+    if WindowState = wsNormal then
+      SaveBounds := BoundsRect
+    else
+      SaveBounds := BoundsRect;
+
     ini.WriteString('SETTINGS', 'workspace', FWorkspacePath);
     ini.WriteBool('SETTINGS', 'workspace_visible', FWorkspaceVisible);
     ini.WriteInteger('SETTINGS', 'workspace_width', FWorkspaceWidth);
     ini.WriteBool('SETTINGS', 'dark_mode', FDarkMode);
+
+    ini.WriteInteger('WINDOW', 'left', SaveBounds.Left);
+    ini.WriteInteger('WINDOW', 'top', SaveBounds.Top);
+    ini.WriteInteger('WINDOW', 'width', SaveBounds.Right - SaveBounds.Left);
+    ini.WriteInteger('WINDOW', 'height', SaveBounds.Bottom - SaveBounds.Top);
+    ini.WriteBool('WINDOW', 'maximized', WindowState = wsMaximized);
+
     ini.UpdateFile;
   finally
     ini.Free;

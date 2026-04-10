@@ -188,6 +188,8 @@ type
       Shift: TShiftState);
     procedure sgTableGetEditText(Sender: TObject; ACol, ARow: Integer;
       var Value: string);
+    procedure sgTableSetEditText(Sender: TObject; ACol, ARow: Integer;
+      const Value: string);
     procedure cbFixColumnsClick(Sender: TObject);
     procedure cbFixRowsClick(Sender: TObject);
     procedure miGridAddNewClick(Sender: TObject);
@@ -268,8 +270,12 @@ type
     FLockColsPrefixLabel: TLabel;
     FLockColsSuffixLabel: TLabel;
     FLockRowsLabel: TLabel;
+    FEditAnchorLeftCol: Integer;
+    FEditAnchorTopRow: Integer;
 
     function GetResizeHitCol(X, Y: Integer): Integer;
+    procedure CaptureEditViewportAnchor;
+    procedure RestoreEditViewport;
     procedure ApplyTheme;
     procedure EnsureToolbarLabels;
     procedure UpdateToolbarLayout;
@@ -348,6 +354,7 @@ type
     procedure ToggleHistoryPanel;
     procedure SetDarkModeEnabled(AEnabled: Boolean);
     function HandleZoomShortcut(AKey: Word; Shift: TShiftState): Boolean;
+    function HandleEditorNavigationKey(AKey: Word; Shift: TShiftState): Boolean;
 
     property Filename: String read FFilename;
     property Modified: Boolean read FModified;
@@ -1539,6 +1546,94 @@ begin
   Result := Max(1, MulDiv(AValue, FZoomPercent, 100));
 end;
 
+procedure TTableFrame.CaptureEditViewportAnchor;
+begin
+  FEditAnchorLeftCol := Max(sgTable.LeftCol, sgTable.FixedCols);
+  FEditAnchorTopRow := Max(sgTable.TopRow, sgTable.FixedRows);
+end;
+
+procedure TTableFrame.RestoreEditViewport;
+var
+  MaxLeftCol: Integer;
+  MaxTopRow: Integer;
+  TargetLeftCol: Integer;
+  TargetTopRow: Integer;
+begin
+  if not sgTable.HandleAllocated then
+    Exit;
+
+  MaxLeftCol := Max(sgTable.FixedCols, sgTable.ColCount - 1);
+  MaxTopRow := Max(sgTable.FixedRows, sgTable.RowCount - 1);
+  TargetLeftCol := EnsureRange(FEditAnchorLeftCol, sgTable.FixedCols, MaxLeftCol);
+  TargetTopRow := EnsureRange(FEditAnchorTopRow, sgTable.FixedRows, MaxTopRow);
+
+  if sgTable.LeftCol <> TargetLeftCol then
+    sgTable.LeftCol := TargetLeftCol;
+
+  if sgTable.TopRow <> TargetTopRow then
+    sgTable.TopRow := TargetTopRow;
+end;
+
+function TTableFrame.HandleEditorNavigationKey(AKey: Word; Shift: TShiftState): Boolean;
+var
+  FocusWnd: HWND;
+  CurCol, CurRow: Integer;
+  NewCol, NewRow: Integer;
+  Value: string;
+begin
+  Result := False;
+
+  if Shift <> [] then
+    Exit;
+
+  case AKey of
+    VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN:
+      ;
+  else
+    Exit;
+  end;
+
+  FocusWnd := GetFocus;
+  if (FocusWnd = 0) or ((FocusWnd <> sgTable.Handle) and (not IsChild(sgTable.Handle, FocusWnd))) then
+    Exit;
+
+  if not sgTable.EditorMode then
+    Exit;
+
+  CurCol := Max(sgTable.Selection.Left, sgTable.FixedCols);
+  CurRow := Max(sgTable.Selection.Top, sgTable.FixedRows);
+  NewCol := CurCol;
+  NewRow := CurRow;
+
+  case AKey of
+    VK_LEFT:
+      if CurCol > sgTable.FixedCols then
+        Dec(NewCol);
+    VK_RIGHT:
+      if CurCol < sgTable.ColCount - 1 then
+        Inc(NewCol);
+    VK_UP:
+      if CurRow > sgTable.FixedRows then
+        Dec(NewRow);
+    VK_DOWN:
+      if CurRow < sgTable.RowCount - 1 then
+        Inc(NewRow);
+  end;
+
+  Value := sgTable.Cells[CurCol, CurRow];
+  if Value <> FOldValue then
+    SetModified(True)
+  else
+    CancelPendingHistory(True);
+
+  sgTable.EditorMode := False;
+
+  if (NewCol <> CurCol) or (NewRow <> CurRow) then
+    Select(NewCol, NewRow, True);
+
+  Result := True;
+end;
+
 procedure TTableFrame.CaptureBaseMetrics;
 var
   i: Integer;
@@ -1977,7 +2072,10 @@ begin
   FZoomPercent := 100;
   FPopupCol := -1;
   FResizingCol := -1;
+  FEditAnchorLeftCol := 1;
+  FEditAnchorTopRow := 0;
   sgTable.OnMouseUp := sgTableMouseUp;
+  sgTable.OnSetEditText := sgTableSetEditText;
 
   sgTable.Font.Name := 'Arial';
   sgTable.Font.Size := 8;
@@ -1997,6 +2095,7 @@ begin
 
   Name := 'TableFrame' + THashSHA2.GetHashString(AFilename);
   LoadFile(AFilename);
+  CaptureEditViewportAnchor;
   FInitialSnapshot := CaptureGridSnapshot;
   ApplyHistoryVisibility;
   RefreshHistoryView;
@@ -2764,6 +2863,8 @@ begin
     if ARow >= (sgTable.TopRow + visibleRowCount - sgTable.FixedRows) then
       sgTable.TopRow := ARow - visibleRowCount + sgTable.FixedRows + 1;
   end;
+
+  CaptureEditViewportAnchor;
 end;
 
 procedure TTableFrame.SetModified(AModified: Boolean);
@@ -3096,6 +3197,16 @@ begin
   end;
 end;
 
+procedure TTableFrame.sgTableSetEditText(Sender: TObject; ACol, ARow: Integer;
+  const Value: string);
+begin
+  if FApplyingHistorySnapshot then
+    Exit;
+
+  if sgTable.EditorMode then
+    RestoreEditViewport;
+end;
+
 procedure TTableFrame.sgTableKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 var value, line: String;
@@ -3104,6 +3215,12 @@ var value, line: String;
     x,y: Integer;
     gr: TGridRect;
 begin
+  if sgTable.EditorMode and HandleEditorNavigationKey(Key, Shift) then
+  begin
+    Key := 0;
+    Exit;
+  end;
+
   if Key = VK_CONTROL then
     Key := 0
   else
@@ -3265,6 +3382,7 @@ var
   Gr: TGridRect;
   HitCol: Integer;
 begin
+  CaptureEditViewportAnchor;
   HitCol := -1;
   if Button = mbLeft then
     HitCol := GetResizeHitCol(X, Y);
@@ -3441,7 +3559,9 @@ begin
     sgTable.Selection := NewSelection;
     sgTable.Repaint;
     CanSelect := False;
-  end;
+  end
+  else
+    CaptureEditViewportAnchor;
 end;
 
 procedure TTableFrame.Undo;
